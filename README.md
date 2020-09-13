@@ -1,4 +1,4 @@
-# deno tabtab
+# tabtab
 
 [![Tags](https://img.shields.io/github/release/denosaurs/tabtab)](https://github.com/denosaurs/tabtab/releases)
 [![CI Status](https://img.shields.io/github/workflow/status/denosaurs/tabtab/check)](https://github.com/denosaurs/tabtab/actions)
@@ -303,7 +303,7 @@ if (cmd === "uninstall-completion") {
 ## Debugging
 
 tabtab internally logs a lot of things, using the
-[debug](https://www.npmjs.com/module/debug) module.
+[debug](https://deno.land/x/debug) module.
 
 When testing a completion, it can be useful to see those logs, but writing to
 `stdout` or `stderr` while completing something can be troublesome.

@@ -1,4 +1,4 @@
-import { Shell } from "./shell.ts";
+import type { Shell } from "./shell.ts";
 
 export const scripts: Record<Shell, string> = {
   bash: `###-begin-{pkgname}-completion-###
@@ -16,7 +16,7 @@ export const scripts: Record<Shell, string> = {
       IFS=$'\n' COMPREPLY=($(COMP_CWORD="$cword" \
                              COMP_LINE="$COMP_LINE" \
                              COMP_POINT="$COMP_POINT" \
-                             {completer} completion -- "\${words[@]}" \
+                             {completer} {completion_cmd} -- "\${words[@]}" \
                              2>/dev/null)) || return $?
       IFS="$si"
       if type __ltrim_colon_completions &>/dev/null; then
@@ -32,7 +32,7 @@ export const scripts: Record<Shell, string> = {
     set cursor (commandline -C)
     set words (node -pe "'$cmd'.split(' ').length")
   
-    set completions (eval env DEBUG=\"" \"" COMP_CWORD=\""$words\"" COMP_LINE=\""$cmd \"" COMP_POINT=\""$cursor\"" {completer} completion -- $cmd)
+    set completions (eval env DEBUG=\\"" \\"" COMP_CWORD=\\""$words\\"" COMP_LINE=\\""$cmd \\"" COMP_POINT=\\""$cursor\\"" {completer} {completion_cmd} -- $cmd)
   
     for completion in $completions
       echo -e $completion
@@ -47,13 +47,12 @@ export const scripts: Record<Shell, string> = {
       local reply
       local si=$IFS
   
-      IFS=$'\n' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" {completer} completion -- "\${words[@]}"))
+      IFS=$'\\n' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" {completer} {completion_cmd} -- "\${words[@]}"))
       IFS=$si
   
       _describe 'values' reply
     }
     compdef _{pkgname}_completion {pkgname}
   fi
-  ###-end-{pkgname}-completion-###
-  `,
+  ###-end-{pkgname}-completion-###`,
 };

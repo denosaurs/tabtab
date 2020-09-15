@@ -89,7 +89,7 @@ const run = async () => {
   }
 
   // The completion command is added automatically by tabtab when the program
-  // is completed.
+  // is completed. Can be configured with the `cmd` option in install.
   if (cmd === "completion") {
     const env = tabtab.parseEnv();
     return completion(env);
@@ -117,7 +117,8 @@ tabtab
   .install({
     name: "tabtab-test",
     completer: "tabtab-test",
-    location: tabtab.defaultLocation(),
+    location: "~/.profile", // optional
+    cmd: "completions", // optional
   })
   .then(() => console.log("Completion installed"))
   .catch((err) => console.error(err));
@@ -128,6 +129,8 @@ The method returns a promise, so `await / async` usage is possible. It takes an
 
 - `name`: The program to complete
 - `completer`: The program that does the completion (can be the same program).
+- `location`: Location of shell configuration.
+- `cmd`: Command to call your script with when asking for completions.
 
 `tabtab.install()` will ask the user which SHELL to use, and optionally a path
 to write to. This will add a new line to either `~/.bashrc`, `~/.zshrc` or

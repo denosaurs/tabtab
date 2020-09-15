@@ -1,5 +1,5 @@
 import { tabtab, ParsedEnv } from "../mod.ts";
-import { parse } from "https://deno.land/std@0.68.0/flags/mod.ts";
+import { parse } from "https://deno.land/std@0.69.0/flags/mod.ts";
 
 const opts = parse(Deno.args, {
   string: ["foo", "bar"],
@@ -76,7 +76,7 @@ const run = async () => {
       .install({
         name: "hello",
         completer: "hello",
-        location: tabtab.defaultLocation(),
+        cmd: "__generate_completions",
       });
 
     return;
@@ -92,7 +92,8 @@ const run = async () => {
     return;
   }
 
-  if (cmd === "completion") {
+  // Defined by the `cmd` option. Defaults to "completions".
+  if (cmd === "__generate_completions") {
     const env = tabtab.parseEnv();
     return completion(env);
   }

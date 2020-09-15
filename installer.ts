@@ -1,10 +1,15 @@
-import { debug as dbg, dirname, encode, exists, join } from "./deps.ts";
+import {
+  debug as dbg,
+  dirname,
+  encode,
+  exists,
+  ensureDir,
+  join,
+} from "./deps.ts";
 
 import { untildify } from "./home.ts";
 import { scripts } from "./scripts.ts";
 import { Shell, shell } from "./shell.ts";
-
-const debug = dbg("tabtab");
 
 import {
   BASH_LOCATION,
@@ -13,9 +18,17 @@ import {
   ZSH_LOCATION,
   TABTAB_SCRIPT_NAME,
 } from "./constants.ts";
-import { ensureDir } from "https://deno.land/std@0.68.0/fs/ensure_dir.ts";
 
-/** Little helper to return the correct file extension based on the SHELL value. */
+export interface Options {
+  name: string;
+  completer: string;
+  location: string;
+  cmd: string;
+}
+
+const debug = dbg("tabtab");
+
+/** Little helper to return the correct file extension based on the SHELL value */
 function shellExtension() {
   return shell();
 }
@@ -24,18 +37,18 @@ function shellExtension() {
 function scriptFromShell(shell: Shell) {
   return scripts[shell];
 }
+
 /** Helper to return the expected location for SHELL config file, based on the
  * provided shell value */
-
 function locationFromShell(shell: Shell) {
   if (shell === "bash") return untildify(BASH_LOCATION);
   if (shell === "zsh") return untildify(ZSH_LOCATION);
   if (shell === "fish") return untildify(FISH_LOCATION);
   return BASH_LOCATION;
 }
+
 /** Helper to return the source line to add depending on the SHELL provided or detected.
  * If the provided SHELL is not known, it returns the source line for a Bash shell */
-
 function sourceLineForShell(scriptname: string, shell: Shell) {
   if (shell === "fish") {
     return `[ -f ${scriptname} ]; and . ${scriptname}; or true`;
@@ -47,8 +60,9 @@ function sourceLineForShell(scriptname: string, shell: Shell) {
 
   // For Bash and others
   return `[ -f ${scriptname} ] && . ${scriptname} || true`;
-} /** Helper to check if a filename is one of the SHELL config we expect */
+}
 
+/** Helper to check if a filename is one of the SHELL config we expect */
 function isInShellConfig(filename: string) {
   return [
     BASH_LOCATION,
@@ -60,14 +74,8 @@ function isInShellConfig(filename: string) {
   ].includes(filename);
 }
 
-/**
- * Checks a given file for the existence of a specific line. Used to prevent
- * adding multiple completion source to SHELL scripts.
- *
- * @param {String} filename - The filename to check against
- * @param {String} line     - The line to look for
- * @returns {Boolean} true or false, false if the line is not present.
- */
+/** Checks a given file for the existence of a specific line. Used to prevent
+ * adding multiple completion source to SHELL scripts */
 async function checkFilenameForLine(
   filename: string,
   line: string,
@@ -90,16 +98,8 @@ async function checkFilenameForLine(
 
   return !!filecontent.match(line);
 }
-/**
- * Opens a file for modification adding a new `source` line for the given
- * SHELL. Used for both SHELL script and tabtab internal one.
- *
- * @param {Object} options - Options with
- *    - filename: The file to modify
- *    - scriptname: The line to add sourcing this file
- *    - name: The module being configured
- */
-
+/** Opens a file for modification adding a new `source` line for the given
+ * SHELL. Used for both SHELL script and tabtab internal one */
 async function writeLineToFilename(
   filename: string,
   scriptname: string,
@@ -131,16 +131,9 @@ async function writeLineToFilename(
 
   debug('=> Added tabtab source line in "%s" file', filename);
 }
-/**
- * Writes to SHELL config file adding a new line, but only one, to the SHELL
- * config script. This enables tabtab to work for the given SHELL.
- *
- * @param {Object} options - Options object with
- *    - location: The SHELL script location (~/.bashrc, ~/.zshrc or
- *    ~/.config/fish/config.fish)
- *    - name: The module configured for completion
- */
 
+/** Writes to SHELL config file adding a new line, but only one, to the SHELL
+ * config script. This enables tabtab to work for the given SHELL */
 async function writeToShellConfig(location: string, name: string) {
   const scriptname = join(
     COMPLETION_DIR,
@@ -158,14 +151,9 @@ async function writeToShellConfig(location: string, name: string) {
   return await writeLineToFilename(filename, scriptname, name);
 }
 
-/**
- * Writes to tabtab internal script that acts as a frontend router for the
+/** Writes to tabtab internal script that acts as a frontend router for the
  * completion mechanism, in the internal ~/.config/tabtab directory. Every
- * completion is added to this file.
- *
- * @param {Object} options - Options object with
- *    - name: The module configured for completion
- */
+ * completion is added to this file */
 async function writeToTabtabScript(name: string) {
   const filename = join(
     COMPLETION_DIR,
@@ -183,16 +171,14 @@ async function writeToTabtabScript(name: string) {
   return await writeLineToFilename(filename, scriptname, name);
 }
 
-/**
- * This writes a new completion script in the internal `~/.config/tabtab`
+/** This writes a new completion script in the internal `~/.config/tabtab`
  * directory. Depending on the SHELL used, a different script is created for
- * the given SHELL.
- *
- * @param {Object} options - Options object with
- *    - name: The module configured for completion
- *    - completer: The binary that will act as the completer for `name` program
- */
-async function writeToCompletionScript(name: string, completer: string) {
+ * the given SHELL */
+async function writeToCompletionScript(
+  name: string,
+  completer: string,
+  cmd: string,
+) {
   const filename = untildify(
     join(COMPLETION_DIR, `${name}.${shellExtension()}`),
   );
@@ -202,8 +188,9 @@ async function writeToCompletionScript(name: string, completer: string) {
   debug("with", script);
 
   script = script
-    .replace(/\{pkgname\}/g, name)
+    .replace(/{pkgname}/g, name)
     .replace(/{completer}/g, completer)
+    .replace(/{completion_cmd}/g, cmd)
     // on Bash on windows, we need to make sure to remove any \r
     .replace(/\r?\n/g, "\n");
 
@@ -219,27 +206,16 @@ async function writeToCompletionScript(name: string, completer: string) {
  * - Writes to SHELL config file, adding a new line to tabtab internal script.
  * - Creates or edit tabtab internal script
  * - Creates the actual completion script for this module.
- *
- * @param {Object} options - Options object with
- *    - name: The program name to complete
- *    - completer: The actual program or binary that will act as the completer
- *    for `name` program. Can be the same.
- *    - location: The SHELL script config location (~/.bashrc, ~/.zshrc or
- *    ~/.config/fish/config.fish)
  */
-export async function install(options: {
-  name: string;
-  completer: string;
-  location: string;
-}) {
+export async function install(options: Options) {
   debug("Install with options", options);
 
-  const { name, completer, location } = options;
+  const { name, completer, location, cmd } = options;
 
   await Promise.all([
     writeToShellConfig(location, name),
     writeToTabtabScript(name),
-    writeToCompletionScript(name, completer),
+    writeToCompletionScript(name, completer, cmd),
   ]);
 
   debug(`
@@ -248,13 +224,8 @@ export async function install(options: {
   `);
 }
 
-/**
- * Removes the 3 relevant lines from provided filename, based on the module
- * name passed in.
- *
- * @param {String} filename - The filename to operate on
- * @param {String} name - The module name to look for
- */
+/** Removes the 3 relevant lines from provided filename, based on the module
+ * name passed in */
 async function removeLinesFromFilename(filename: string, name: string) {
   /* eslint-disable no-unused-vars */
   debug("Removing lines from %s file, looking for %s module", filename, name);
@@ -305,17 +276,11 @@ async function removeLinesFromFilename(filename: string, name: string) {
   debug("=> Removed tabtab source lines from %s file", filename);
 }
 
-/**
- * Here the idea is to uninstall a given module completion from internal
+/** Here the idea is to uninstall a given module completion from internal
  * tabtab scripts and / or the SHELL config.
  *
  * It also removes the relevant scripts if no more completion are installed on
- * the system.
- *
- * @param {Object} options - Options object with
- *    - name: The module name to look for
- */
-
+ * the system */
 export async function uninstall(options: { name: string }) {
   debug("Uninstall with options", options);
   const { name } = options;

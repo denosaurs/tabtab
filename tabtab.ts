@@ -1,27 +1,24 @@
 import { BASH_LOCATION, FISH_LOCATION, ZSH_LOCATION } from "./constants.ts";
 import { debug as dbg } from "./deps.ts";
+import { shell, Shell } from "./shell.ts";
+
 import * as installer from "./installer.ts";
-import { Shell, shell } from "./shell.ts";
 
 const debug = dbg("tabtab");
 
-/**
- * Install and enable completion on user system. It'll ask for:
- *
- * - SHELL (bash, zsh or fish)
- * - Path to shell script (with sensible defaults)
- *
- * @param {Object} Options to use with namely `name` and `completer`
- *
- */
+/** Install and enable completion on user system. */
 export async function install(options: {
   name: string;
   completer: string;
-  location: string;
+  location?: string;
+  cmd?: string;
 }): Promise<void> {
-  return await installer.install(options);
+  if (!options.location) options.location = defaultLocation();
+  if (!options.cmd) options.cmd = "completions";
+  return await installer.install(options as installer.Options);
 }
 
+/** Remove completion on user system. */
 export async function uninstall(options: { name: string }): Promise<void> {
   return await installer.uninstall(options);
 }
@@ -47,8 +44,6 @@ export async function uninstall(options: { name: string }): Promise<void> {
  *   // last        The last String word of the line
  *   // lastPartial The last word String of partial
  *   // prev        The String word preceding last
- *
- * Returns the data env object.
  */
 export interface Env {
   COMP_CWORD: string;
@@ -117,16 +112,12 @@ export function parseEnv(env?: Env): ParsedEnv {
   };
 }
 
-interface CompletionItem {
+export interface CompletionItem {
   name: string;
   description: string;
 }
 
-/**
- * Helper to normalize String and Objects with { name, description } when logging out.
- *
- * @param {String|Object} item - Item to normalize
- */
+/** Helper to normalize String and Objects with { name, description } when logging out. */
 export function completionItem(item: string | CompletionItem) {
   debug("completion item", item);
 
@@ -173,9 +164,6 @@ export function location(shell: Shell): string {
  *
  * Bash needs in addition to filter out the args for the completion to work
  * (zsh, fish don't need this).
- *
- * @param {Array} Arguments to log, Strings or Objects with name and
- * description property.
  */
 export function log(args: (string | CompletionItem)[]) {
   const sysShell = shell();

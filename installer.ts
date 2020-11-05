@@ -2,8 +2,8 @@ import {
   debug as dbg,
   dirname,
   encode,
-  exists,
   ensureDir,
+  exists,
   join,
 } from "./deps.ts";
 
@@ -15,8 +15,8 @@ import {
   BASH_LOCATION,
   COMPLETION_DIR,
   FISH_LOCATION,
-  ZSH_LOCATION,
   TABTAB_SCRIPT_NAME,
+  ZSH_LOCATION,
 } from "./constants.ts";
 
 export interface Options {

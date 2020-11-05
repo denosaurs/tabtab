@@ -1,6 +1,6 @@
 import { BASH_LOCATION, FISH_LOCATION, ZSH_LOCATION } from "./constants.ts";
 import { debug as dbg } from "./deps.ts";
-import { shell, Shell } from "./shell.ts";
+import { Shell, shell } from "./shell.ts";
 
 import * as installer from "./installer.ts";
 

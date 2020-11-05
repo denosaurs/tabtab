@@ -17,11 +17,11 @@ Writing completion is a two-step process: Installation and Logging. Tabtab
 provides just that.
 
 Here is a basic example using
-[std parse](https://deno.land/std@0.75.0/flags) to parse arguments.
+[std parse](https://deno.land/std@0.76.0/flags) to parse arguments.
 
 ```js
 import { tabtab, ParsedEnv } from "../mod.ts";
-import { parse } from "https://deno.land/std@0.75.0/flags/mod.ts";
+import { parse } from "https://deno.land/std@0.76.0/flags/mod.ts";
 
 const opts = parse(Deno.args, {
   string: ["foo", "bar"],

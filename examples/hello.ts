@@ -1,5 +1,5 @@
 import { ParsedEnv, tabtab } from "../mod.ts";
-import { parse } from "https://deno.land/std@0.76.0/flags/mod.ts";
+import { parse } from "https://deno.land/std@0.78.0/flags/mod.ts";
 
 const opts = parse(Deno.args, {
   string: ["foo", "bar"],
